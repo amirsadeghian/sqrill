@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚗 RC Car Control</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .panel {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+        
+        .panel h2 {
+            margin-bottom: 15px;
+            font-size: 1.5em;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+            padding-bottom: 10px;
+        }
+        
+        /* Video Feed */
+        #video-feed {
+            width: 100%;
+            border-radius: 10px;
+            background: #000;
+            min-height: 240px;
+        }
+        
+        /* Control Buttons */
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        button {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 1.2em;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+        
+        button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.05);
+        }
+        
+        button:active {
+            transform: scale(0.95);
+        }
+        
+        button.active {
+            background: rgba(0, 255, 0, 0.4);
+            border-color: #00ff00;
+        }
+        
+        #btn-forward { grid-column: 2; }
+        #btn-left { grid-column: 1; grid-row: 2; }
+        #btn-stop { 
+            grid-column: 2; 
+            grid-row: 2; 
+            background: rgba(255, 0, 0, 0.3);
+            border-color: #ff4444;
+        }
+        #btn-right { grid-column: 3; grid-row: 2; }
+        #btn-backward { grid-column: 2; grid-row: 3; }
+        
+        /* Mode Selection */
+        .mode-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .mode-buttons button {
+            flex: 1;
+            padding: 12px;
+            font-size: 1em;
+        }
+        
+        /* Sensors */
+        .sensor-display {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .sensor-box {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .sensor-box h3 {
+            font-size: 0.9em;
+            margin-bottom: 10px;
+            opacity: 0.8;
+        }
+        
+        .sensor-value {
+            font-size: 2em;
+            font-weight: bold;
+        }
+        
+        .sensor-value.danger {
+            color: #ff4444;
+        }
+        
+        .sensor-value.warning {
+            color: #ffaa00;
+        }
+        
+        .sensor-value.safe {
+            color: #00ff00;
+        }
+        
+        /* Speed Control */
+        .speed-control {
+            margin-top: 15px;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            height: 8px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.3);
+            outline: none;
+            margin-top: 10px;
+        }
+        
+        .speed-display {
+            text-align: center;
+            font-size: 1.5em;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        
+        /* Status */
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-indicator.connected {
+            background: #00ff00;
+        }
+        
+        .status-indicator.disconnected {
+            background: #ff0000;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .info-bar {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px 20px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        /* Motion Detection */
+        .motion-indicator {
+            text-align: center;
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 10px;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+        
+        .motion-indicator.detected {
+            background: rgba(255, 0, 0, 0.4);
+            animation: blink 1s infinite;
+        }
+        
+        .motion-indicator.clear {
+            background: rgba(0, 255, 0, 0.2);
+        }
+        
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚗 RC Car Control Center</h1>
+        
+        <div class="info-bar">
+            <div>
+                <span class="status-indicator" id="connection-status"></span>
+                <span id="status-text">Connecting...</span>
+            </div>
+            <div>
+                Mode: <strong id="current-mode">Manual</strong>
+            </div>
+        </div>
+        
+        <div class="grid">
+            <!-- Camera Feed -->
+            <div class="panel">
+                <h2>📷 Live Camera Feed</h2>
+                <img id="video-feed" src="/video_feed" alt="Camera Feed">
+                <div class="motion-indicator clear" id="motion-indicator">
+                    🔍 No Motion Detected
+                </div>
+            </div>
+            
+            <!-- Manual Controls -->
+            <div class="panel">
+                <h2>🎮 Manual Control</h2>
+                <div class="controls">
+                    <button id="btn-forward" onclick="move('forward')">⬆️<br>Forward</button>
+                    <button id="btn-left" onclick="move('left')">⬅️<br>Left</button>
+                    <button id="btn-stop" onclick="move('stop')">⏹️<br>STOP</button>
+                    <button id="btn-right" onclick="move('right')">➡️<br>Right</button>
+                    <button id="btn-backward" onclick="move('backward')">⬇️<br>Backward</button>
+                </div>
+                
+                <div class="speed-control">
+                    <label>Speed Control:</label>
+                    <input type="range" id="speed-slider" min="0" max="100" value="70" 
+                           oninput="updateSpeed(this.value)">
+                    <div class="speed-display">Speed: <span id="speed-value">70</span>%</div>
+                </div>
+            </div>
+            
+            <!-- Sensor Readings -->
+            <div class="panel">
+                <h2>📡 Ultrasonic Sensors</h2>
+                <div class="sensor-display">
+                    <div class="sensor-box">
+                        <h3>⬅️ LEFT</h3>
+                        <div class="sensor-value safe" id="sensor-left">--</div>
+                        <small>cm</small>
+                    </div>
+                    <div class="sensor-box">
+                        <h3>⬆️ CENTER</h3>
+                        <div class="sensor-value safe" id="sensor-center">--</div>
+                        <small>cm</small>
+                    </div>
+                    <div class="sensor-box">
+                        <h3>➡️ RIGHT</h3>
+                        <div class="sensor-value safe" id="sensor-right">--</div>
+                        <small>cm</small>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Mode Selection -->
+            <div class="panel">
+                <h2>🤖 Operation Modes</h2>
+                <div class="mode-buttons">
+                    <button onclick="setMode('manual')" id="mode-manual" class="active">
+                        🎮<br>Manual
+                    </button>
+                    <button onclick="setMode('autonomous')" id="mode-autonomous">
+                        🚗<br>Autonomous
+                    </button>
+                    <button onclick="setMode('squirrel_chase')" id="mode-squirrel">
+                        🐿️<br>Squirrel Chase
+                    </button>
+                </div>
+                <div style="margin-top: 20px; font-size: 0.9em; opacity: 0.8;">
+                    <strong>Manual:</strong> Full joystick control<br>
+                    <strong>Autonomous:</strong> Obstacle avoidance<br>
+                    <strong>Squirrel Chase:</strong> Hunt mode activated 🐿️
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Socket.IO connection
+        const socket = io();
+        
+        let currentMode = 'manual';
+        
+        socket.on('connect', function() {
+            updateConnectionStatus(true);
+        });
+        
+        socket.on('disconnect', function() {
+            updateConnectionStatus(false);
+        });
+        
+        socket.on('sensor_update', function(data) {
+            updateSensors(data.distances);
+            updateMotionIndicator(data.motion);
+        });
+        
+        // Update connection status
+        function updateConnectionStatus(connected) {
+            const indicator = document.getElementById('connection-status');
+            const statusText = document.getElementById('status-text');
+            
+            if (connected) {
+                indicator.className = 'status-indicator connected';
+                statusText.textContent = 'Connected';
+            } else {
+                indicator.className = 'status-indicator disconnected';
+                statusText.textContent = 'Disconnected';
+            }
+        }
+        
+        // Movement controls
+        function move(direction) {
+            fetch('/api/control', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    command: 'move',
+                    direction: direction
+                })
+            });
+        }
+        
+        // Speed control
+        function updateSpeed(value) {
+            document.getElementById('speed-value').textContent = value;
+            fetch('/api/control', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    command: 'speed',
+                    speed: parseInt(value)
+                })
+            });
+        }
+        
+        // Mode selection
+        function setMode(mode) {
+            currentMode = mode;
+            
+            // Update button states
+            document.getElementById('mode-manual').classList.remove('active');
+            document.getElementById('mode-autonomous').classList.remove('active');
+            document.getElementById('mode-squirrel').classList.remove('active');
+            document.getElementById('mode-' + mode.split('_')[0]).classList.add('active');
+            
+            // Update display
+            const modeNames = {
+                'manual': 'Manual Control',
+                'autonomous': 'Autonomous Navigation',
+                'squirrel_chase': 'Squirrel Chase Mode 🐿️'
+            };
+            document.getElementById('current-mode').textContent = modeNames[mode];
+            
+            // Send command
+            fetch('/api/control', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    command: 'mode',
+                    mode: mode
+                })
+            });
+        }
+        
+        // Update sensor displays
+        function updateSensors(distances) {
+            updateSensor('left', distances.left);
+            updateSensor('center', distances.center);
+            updateSensor('right', distances.right);
+        }
+        
+        function updateSensor(position, distance) {
+            const element = document.getElementById('sensor-' + position);
+            element.textContent = distance.toFixed(1);
+            
+            // Update color based on distance
+            element.className = 'sensor-value';
+            if (distance < 15) {
+                element.classList.add('danger');
+            } else if (distance < 30) {
+                element.classList.add('warning');
+            } else {
+                element.classList.add('safe');
+            }
+        }
+        
+        // Update motion indicator
+        function updateMotionIndicator(motionDetected) {
+            const indicator = document.getElementById('motion-indicator');
+            
+            if (motionDetected) {
+                indicator.className = 'motion-indicator detected';
+                indicator.textContent = '🐿️ MOTION DETECTED!';
+            } else {
+                indicator.className = 'motion-indicator clear';
+                indicator.textContent = '🔍 No Motion Detected';
+            }
+        }
+        
+        // Keyboard controls
+        document.addEventListener('keydown', function(event) {
+            if (currentMode !== 'manual') return;
+            
+            switch(event.key) {
+                case 'ArrowUp':
+                case 'w':
+                    move('forward');
+                    break;
+                case 'ArrowDown':
+                case 's':
+                    move('backward');
+                    break;
+                case 'ArrowLeft':
+                case 'a':
+                    move('left');
+                    break;
+                case 'ArrowRight':
+                case 'd':
+                    move('right');
+                    break;
+                case ' ':
+                    move('stop');
+                    event.preventDefault();
+                    break;
+            }
+        });
+        
+        document.addEventListener('keyup', function(event) {
+            if (currentMode !== 'manual') return;
+            
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd'].includes(event.key)) {
+                move('stop');
+            }
+        });
+        
+        // Periodic sensor updates
+        setInterval(function() {
+            fetch('/api/sensors')
+                .then(response => response.json())
+                .then(data => {
+                    updateSensors(data.distances);
+                    updateMotionIndicator(data.motion_detected);
+                });
+        }, 500);
+    </script>
+</body>
+</html>
