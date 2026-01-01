@@ -58,3 +58,12 @@ CHASE_DURATION = 3.0  # How long to chase detected motion (seconds)
 CHASE_SPEED = 80  # Speed when chasing squirrels
 MOTION_COOLDOWN = 2.0  # Seconds to wait after chase before detecting again
 PIR_DEBOUNCE_TIME = 0.5  # Seconds to debounce PIR sensor
+
+# PlayStation Controller Settings
+CONTROLLER_ENABLE = True  # Enable PS controller support
+CONTROLLER_VENDOR_ID = "0810"  # USB Vendor ID for Dual PSX Adaptor
+CONTROLLER_PRODUCT_ID = "0001"  # USB Product ID
+CONTROLLER_SPEED = 70  # Speed when using controller (0-100)
+CONTROLLER_TURN_SPEED = 60  # Turn speed when using controller
+CONTROLLER_USE_ANALOG = True  # Use analog sticks (False = D-pad only)
+CONTROLLER_DEADZONE = 20  # Analog stick deadzone (prevents drift)

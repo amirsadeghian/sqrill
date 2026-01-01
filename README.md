@@ -19,7 +19,20 @@ A Raspberry Pi-based autonomous RC car with ultrasonic sensors for obstacle avoi
 
 ## Modes of Operation
 
-### 1. 🌐 Web Control Interface (NEW!)
+### 1. � PlayStation Controller (NEW!)
+Direct control with PS1/PS2 controller:
+```bash
+python controller_car.py
+```
+
+**Controls:**
+- **D-Pad Up/Down**: Forward/Backward
+- **D-Pad Left/Right**: Turn left/right
+- **Left Analog Stick**: Smooth steering (if enabled)
+- **X Button**: Emergency stop
+- **START**: Exit
+
+### 2. 🌐 Web Control Interface
 Control your car from any device on WiFi:
 ```bash
 python web_control.py
@@ -30,17 +43,18 @@ Then open in browser: `http://[raspberry-pi-ip]:5000`
 - 📱 Works on phone, tablet, or computer
 - 📷 Live camera feed
 - 🎮 Touch/click controls or keyboard (WASD/Arrows)
+- 🎮 **Auto-detects PS controller** (use alongside web interface!)
 - 📊 Real-time sensor readings
 - 🤖 Switch between Manual/Autonomous/Squirrel Chase modes
 - 🔴 Emergency stop button
 
-### 2. Autonomous Obstacle Avoidance
+### 3. Autonomous Obstacle Avoidance
 Basic autonomous driving with obstacle detection:
 ```bash
 python autonomous_car.py
 ```
 
-### 3. 🐿️ Squirrel Chaser Mode
+### 4. 🐿️ Squirrel Chaser Mode
 Detects and chases squirrels using PIR sensor + camera:
 ```bash
 python squirrel_chaser.py
@@ -63,6 +77,7 @@ Options:
 - RC Car Chassis
 - Power Supply (battery pack)
 - Optional: Raspberry Pi Camera Module or USB Camera
+- **Optional: PS1/PS2 Controller + USB Adapter (0810:0001)** 🎮
 
 ### Wiring
 
@@ -171,6 +186,11 @@ python autonomous_car.py --camera
 
 ### Test Individual Components
 
+**Test PS Controller:** 🎮
+```bash
+python ps_controller.py
+```
+
 **Test PIR Motion Sensor:** 🆕
 ```bash
 python motion_detection.py
@@ -216,6 +236,12 @@ All settings are in `config.py`:
 - `CHASE_SPEED`: Speed when chasing (80 PWM)
 - `MOTION_COOLDOWN`: Wait time after chase (2.0 seconds)
 - `PIR_DEBOUNCE_TIME`: Prevent false triggers (0.5 seconds)
+
+### PS Controller 🎮
+- `CONTROLLER_SPEED`: Speed when using controller (70 PWM)
+- `CONTROLLER_TURN_SPEED`: Turn speed (60 PWM)
+- `CONTROLLER_USE_ANALOG`: Use analog sticks vs D-pad only
+- `CONTROLLER_DEADZONE`: Analog stick deadzone (prevents drift)
 
 ## How It Works
 
@@ -281,8 +307,10 @@ Update `ultrasonic_sensors.py` to add rear sensors to SensorArray.
 - [x] **WiFi web control interface** 🌐
 - [x] **Live camera streaming**
 - [x] **Real-time sensor monitoring**
+- [x] **PlayStation controller support** 🎮
 - [ ] Mobile app (iOS/Android)
 - [ ] Voice control integration
+- [ ] Xbox/other controller support
 - [ ] Line following using camera
 - [ ] Object recognition (stop signs, traffic lights)
 - [ ] GPS waypoint navigation
@@ -350,6 +378,23 @@ Update `ultrasonic_sensors.py` to add rear sensors to SensorArray.
 - Reduce `CAMERA_FRAMERATE` to 10
 - Use wired Ethernet instead of WiFi if possible
 - Close other browser tabs
+
+### PS Controller not detected 🎮
+- Check adapter is plugged in: `lsusb | grep 0810`
+- Verify controller is connected to adapter (LED should light up)
+- Add user to input group: `sudo usermod -a -G input $USER`
+- Then logout and login for changes to take effect
+- Check permissions: `ls -l /dev/input/`
+- Test controller: `python ps_controller.py`
+- Try different USB port
+- Some adapters need calibration - press SELECT+START
+
+### Controller has drift/not responding 🎮
+- Increase `CONTROLLER_DEADZONE` in config.py (try 30-40)
+- Calibrate controller if adapter supports it
+- Try D-pad only mode: set `CONTROLLER_USE_ANALOG = False`
+- Check analog sticks are centered when idle
+- Clean analog stick contacts (oxidation can cause issues)
 
 ## Safety Tips
 

@@ -6,3 +6,4 @@ imutils
 flask
 flask-socketio
 eventlet
+evdev

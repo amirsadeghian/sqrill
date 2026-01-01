@@ -14,7 +14,12 @@ from ultrasonic_sensors import SensorArray
 from motor_control import MotorController, Direction
 from camera_module import CameraModule
 from motion_detection import MotionDetectionManager
-
+# Try to import PS controller support
+try:
+    from ps_controller import PSController
+    PS_CONTROLLER_AVAILABLE = True
+except ImportError:
+    PS_CONTROLLER_AVAILABLE = False
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'sqrill_secret_key_2025'
@@ -35,15 +40,26 @@ class WebControlledCar:
         self.motors = MotorController()
         self.camera = None
         self.motion_detector = None
+        self.ps_controller = None
         
         # Control state
-        self.mode = 'manual'  # manual, autonomous, squirrel_chase
+        self.mode = 'manual'  # manual, autonomous, squirrel_chase, controller
         self.running = False
         self.autonomous_thread = None
         
         # Sensor data
         self.latest_distances = {'left': 0, 'center': 0, 'right': 0}
         self.motion_detected = False
+        
+        # Initialize PS controller if available
+        if PS_CONTROLLER_AVAILABLE and config.CONTROLLER_ENABLE:
+            try:
+                self.ps_controller = PSController()
+                if self.ps_controller.device:
+                    print("🎮 PS Controller detected and ready!")
+                    self.ps_controller.start_reading()
+            except Exception as e:
+                print(f"PS Controller initialization failed: {e}")
         
         print("Web-Controlled RC Car ready!")
     
@@ -168,6 +184,42 @@ class WebControlledCar:
             self.camera.cleanup()
         if self.motion_detector:
             self.motion_detector.cleanup()
+        if self.ps_controller:
+            self.ps_controller.cleanup()
+
+
+def background_controller_handler():
+    """Handle PS controller input in background"""
+    global car_controller
+    
+    if not car_controller.ps_controller or not car_controller.ps_controller.device:
+        return
+    
+    while True:
+        try:
+            if car_controller.mode == 'manual' and car_controller.ps_controller:
+                # Process controller input when in manual mode
+                controller = car_controller.ps_controller
+                
+                # D-Pad controls
+                if controller.is_button_pressed('BTN_TRIGGER'):  # Up
+                    car_controller.motors.forward(speed=config.CONTROLLER_SPEED)
+                elif controller.is_button_pressed('BTN_THUMB'):  # Down
+                    car_controller.motors.backward(speed=config.CONTROLLER_SPEED)
+                elif controller.is_button_pressed('BTN_THUMB2'):  # Left
+                    car_controller.motors.turn_left(speed=config.CONTROLLER_TURN_SPEED)
+                elif controller.is_button_pressed('BTN_TOP'):  # Right
+                    car_controller.motors.turn_right(speed=config.CONTROLLER_TURN_SPEED)
+                elif controller.is_button_pressed('BTN_TOP2'):  # X button - stop
+                    car_controller.motors.stop()
+                else:
+                    # Check if no buttons pressed for a moment
+                    time.sleep(0.05)
+            
+            time.sleep(0.05)
+        except Exception as e:
+            print(f"Controller handler error: {e}")
+            time.sleep(1)
 
 
 def generate_frames():
@@ -211,10 +263,16 @@ def get_sensors():
     """Get current sensor readings"""
     global car_controller
     car_controller.update_sensor_data()
+    
+    # Check PS controller status
+    controller_connected = (car_controller.ps_controller and 
+                           car_controller.ps_controller.device is not None)
+    
     return jsonify({
         'distances': car_controller.latest_distances,
         'motion_detected': car_controller.motion_detected,
-        'mode': car_controller.mode
+        'mode': car_controller.mode,
+        'controller_connected': controller_connected
     })
 
 
@@ -311,6 +369,12 @@ if __name__ == '__main__':
     # Start background sensor updates
     sensor_thread = threading.Thread(target=background_sensor_updates, daemon=True)
     sensor_thread.start()
+    
+    # Start PS controller handler if available
+    if car_controller.ps_controller and car_controller.ps_controller.device:
+        controller_thread = threading.Thread(target=background_controller_handler, daemon=True)
+        controller_thread.start()
+        print("🎮 PS Controller handler started")
     
     # Get local IP address
     import socket
