@@ -46,6 +46,8 @@ class MotorController:
         """Setup GPIO pins for motors"""
         pins = [
             config.MOTOR_DRIVE_PWM,
+            config.MOTOR_DRIVE_FORWARD,
+            config.MOTOR_DRIVE_BACKWARD,
             config.MOTOR_STEER_LEFT,
             config.MOTOR_STEER_RIGHT,
             config.MOTOR_STEER_PWM
@@ -61,6 +63,8 @@ class MotorController:
     
     def stop(self):
         """Stop drive motor and center steering"""
+        GPIO.output(config.MOTOR_DRIVE_FORWARD, False)
+        GPIO.output(config.MOTOR_DRIVE_BACKWARD, False)
         self.pwm_drive.ChangeDutyCycle(0)
         self.center_steering()
         self.is_moving = False
@@ -70,7 +74,11 @@ class MotorController:
         if speed is None:
             speed = self.current_speed
         
-        # Drive motor forward (positive PWM)
+        # Set direction pins for forward
+        GPIO.output(config.MOTOR_DRIVE_FORWARD, True)
+        GPIO.output(config.MOTOR_DRIVE_BACKWARD, False)
+        
+        # Apply PWM speed
         self.pwm_drive.ChangeDutyCycle(speed)
         self.is_moving = True
     
@@ -79,12 +87,12 @@ class MotorController:
         if speed is None:
             speed = self.current_speed
         
-        # Drive motor backward
-        # NOTE: With only PWM pin, this needs proper H-bridge wiring
-        # You may need to add MOTOR_DRIVE_FORWARD and MOTOR_DRIVE_BACKWARD pins
-        # in config.py and control them here for direction control
-        # For now, using PWM only (works if H-bridge is wired for bidirectional control)
-        self.pwm_drive.ChangeDutyCycle(-speed if speed < 0 else speed)
+        # Set direction pins for backward
+        GPIO.output(config.MOTOR_DRIVE_FORWARD, False)
+        GPIO.output(config.MOTOR_DRIVE_BACKWARD, True)
+        
+        # Apply PWM speed
+        self.pwm_drive.ChangeDutyCycle(speed)
         self.is_moving = True
     
     def steer_left(self, amount: int = 100):
