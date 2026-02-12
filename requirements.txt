@@ -1,9 +1,28 @@
-RPi.GPIO
-opencv-python
-numpy
-picamera2
-imutils
-flask
-flask-socketio
-eventlet
-evdev
+# Autonomous RC Car Dependencies
+# Requires Python 3.8 or newer
+
+# GPIO Control (Raspberry Pi specific)
+RPi.GPIO>=0.7.1
+
+# Computer Vision
+opencv-python>=4.8.0
+numpy>=1.24.0
+
+# Camera (Raspberry Pi Camera v2/v3)
+picamera2>=0.3.17
+
+# Image Processing Utilities
+imutils>=0.5.4
+
+# Web Interface
+Flask>=3.0.0
+flask-socketio>=5.3.0
+python-socketio>=5.11.0
+eventlet>=0.33.0
+
+# Controller Support (PlayStation adapter)
+evdev>=1.6.0
+
+# Optional: Better performance
+# Uncomment if you want faster processing
+# opencv-contrib-python>=4.8.0  # Extra OpenCV modules

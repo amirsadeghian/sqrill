@@ -68,6 +68,14 @@ Options:
 
 ## Hardware Requirements
 
+### Raspberry Pi Compatibility
+- **Raspberry Pi 2**: Works (optimized camera settings included)
+- **Raspberry Pi 3/3B+**: Works great
+- **Raspberry Pi 4**: Best performance
+- **Raspberry Pi Zero 2W**: Works (limited processing power)
+- **Python Version**: 3.8 or newer (3.9+ recommended)
+- **OS**: Raspberry Pi OS Bullseye or newer
+
 ### Components
 - Raspberry Pi (any model with GPIO)
 - 3x HC-SR04 Ultrasonic Sensors
@@ -129,6 +137,10 @@ add direction pins in config.py if needed.
 
 ## Software Setup
 
+### Requirements
+- **Python 3.8 or newer** (Python 3.9+ recommended)
+- Raspberry Pi OS (Bullseye or newer)
+
 ### 1. Install Raspberry Pi OS
 ```bash
 # Update system
@@ -136,19 +148,42 @@ sudo apt update
 sudo apt upgrade -y
 ```
 
-### 2. Enable Camera (if using)
+### 2. Check Python Version
+```bash
+python3 --version
+# Should show Python 3.8.0 or higher
+```
+
+### 3. Enable Camera (if using)
 ```bash
 sudo raspi-config
 # Navigate to: Interface Options > Camera > Enable
 ```
 
-### 3. Install Python Dependencies
+### 4. Install Python Dependencies
+
+**Option A - Using pip (traditional):**
 ```bash
 cd sqrill
 pip install -r requirements.txt
 ```
 
-### 4. Configure GPIO Pins
+**Option B - Using pyproject.toml (modern, Python 3.8+):**
+```bash
+cd sqrill
+pip install -e .
+```
+
+**Option C - Install system packages first (recommended for Pi 2):**
+```bash
+# Install system dependencies
+sudo apt-get install python3-opencv python3-numpy python3-flask
+
+# Then install remaining Python packages
+pip install -r requirements.txt
+```
+
+### 5. Configure GPIO Pins
 Edit `config.py` to match your wiring:
 ```python
 # Adjust these values based on your setup
@@ -156,6 +191,19 @@ SENSOR_LEFT = {'trigger': 23, 'echo': 24}
 MOTOR_LEFT_FORWARD = 18
 # etc...
 ```
+
+### 6. Verify Installation ✨
+Run the system check script to verify everything is working:
+```bash
+python3 check_system.py
+```
+
+This will check:
+- ✅ Python version (>= 3.8)
+- ✅ All dependencies installed
+- ✅ GPIO permissions
+- ✅ Camera availability (optional)
+- ✅ Controller connection (optional)
 
 ## Usage
 
@@ -312,6 +360,8 @@ Update `ultrasonic_sensors.py` to add rear sensors to SensorArray.
 - [x] **Live camera streaming**
 - [x] **Real-time sensor monitoring**
 - [x] **PlayStation controller support** 🎮
+- [x] **Python 3.8+ support with modern packaging** 🐍
+- [x] **System check script for easy setup**
 - [ ] Mobile app (iOS/Android)
 - [ ] Voice control integration
 - [ ] Xbox/other controller support
@@ -399,6 +449,27 @@ Update `ultrasonic_sensors.py` to add rear sensors to SensorArray.
 - Try D-pad only mode: set `CONTROLLER_USE_ANALOG = False`
 - Check analog sticks are centered when idle
 - Clean analog stick contacts (oxidation can cause issues)
+
+### Python version too old 🐍
+- Check version: `python3 --version`
+- Need Python 3.8 or newer
+- Update Python:
+  ```bash
+  sudo apt-get update
+  sudo apt-get install python3.9 python3-pip
+  python3.9 -m pip install -r requirements.txt
+  ```
+- Run with specific version: `python3.9 autonomous_car.py`
+- Or update Raspberry Pi OS to newer version (Bullseye/Bookworm)
+
+### Dependency installation fails 🐍
+- Try system packages first (faster on Pi 2):
+  ```bash
+  sudo apt-get install python3-opencv python3-numpy python3-flask
+  pip install -r requirements.txt
+  ```
+- If pip is old: `python3 -m pip install --upgrade pip`
+- Check available space: `df -h`
 
 ## Safety Tips
 

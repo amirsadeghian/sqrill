@@ -1,0 +1,55 @@
+[project]
+name = "sqrill"
+version = "1.0.0"
+description = "Autonomous RC Car with obstacle avoidance, squirrel detection, and remote control"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [
+    {name = "Amir"}
+]
+keywords = ["raspberry-pi", "rc-car", "autonomous", "robotics", "computer-vision"]
+
+dependencies = [
+    "RPi.GPIO>=0.7.1",
+    "opencv-python>=4.8.0",
+    "numpy>=1.24.0",
+    "picamera2>=0.3.17",
+    "imutils>=0.5.4",
+    "Flask>=3.0.0",
+    "flask-socketio>=5.3.0",
+    "python-socketio>=5.11.0",
+    "eventlet>=0.33.0",
+    "evdev>=1.6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "black>=23.0.0",
+    "mypy>=1.5.0",
+]
+
+[project.scripts]
+sqrill-web = "web_control:main"
+sqrill-controller = "controller_car:main"
+sqrill-autonomous = "autonomous_car:main"
+sqrill-squirrel = "squirrel_chaser:main"
+
+[build-system]
+requires = ["setuptools>=68.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = [
+    "config",
+    "motor_control",
+    "ultrasonic_sensors",
+    "camera_module",
+    "motion_detection",
+    "ps_controller",
+    "autonomous_car",
+    "squirrel_chaser",
+    "controller_car",
+    "web_control",
+]
