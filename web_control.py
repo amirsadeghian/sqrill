@@ -6,7 +6,6 @@ Provides web-based control, live camera feed, and sensor monitoring
 """
 from flask import Flask, render_template, Response, jsonify, request
 from flask_socketio import SocketIO, emit
-import cv2
 import time
 import threading
 import json
@@ -14,8 +13,26 @@ from typing import Optional
 import config
 from ultrasonic_sensors import SensorArray
 from motor_control import MotorController, Direction
-from camera_module import CameraModule
+
+# Try to import opencv
+try:
+    import cv2
+    CV2_AVAILABLE = True
+except ImportError:
+    CV2_AVAILABLE = False
+    print("Warning: opencv-python not installed. Camera features disabled.")
+    print("Install with: pip install opencv-python")
+
+# Try to import camera module
+try:
+    from camera_module import CameraModule
+    CAMERA_MODULE_AVAILABLE = True
+except ImportError as e:
+    CAMERA_MODULE_AVAILABLE = False
+    print(f"Warning: Camera module unavailable: {e}")
+
 from motion_detection import MotionDetectionManager
+
 # Try to import PS controller support
 try:
     from ps_controller import PSController
@@ -68,6 +85,9 @@ class WebControlledCar:
     def initialize_camera(self):
         """Initialize camera (lazy loading)"""
         if self.camera is None:
+            if not CAMERA_MODULE_AVAILABLE or not CV2_AVAILABLE:
+                print("Camera unavailable: opencv-python or camera module not installed")
+                return
             try:
                 self.camera = CameraModule(use_picamera=True)
                 print("Camera initialized")
@@ -227,6 +247,12 @@ def background_controller_handler():
 def generate_frames():
     """Generate video frames for streaming"""
     global car_controller
+    
+    if not CV2_AVAILABLE:
+        # Return a placeholder frame or empty stream
+        yield (b'--frame\r\n'
+               b'Content-Type: text/plain\r\n\r\n' + b'Camera unavailable - opencv-python not installed\r\n')
+        return
     
     while True:
         try:

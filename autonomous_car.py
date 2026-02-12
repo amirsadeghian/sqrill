@@ -11,7 +11,15 @@ from typing import Optional
 import config
 from ultrasonic_sensors import SensorArray
 from motor_control import MotorController, Direction
-from camera_module import CameraModule
+
+# Camera is optional
+try:
+    from camera_module import CameraModule, CV2_AVAILABLE
+    CAMERA_MODULE_AVAILABLE = True
+except ImportError as e:
+    CAMERA_MODULE_AVAILABLE = False
+    CV2_AVAILABLE = False
+    print(f"Warning: Camera module unavailable: {e}")
 
 
 class AutonomousCar:
@@ -23,7 +31,22 @@ class AutonomousCar:
         # Initialize components
         self.sensors = SensorArray()
         self.motors = MotorController()
-        self.camera = CameraModule(use_picamera=True) if enable_camera else None
+        
+        # Only enable camera if module is available and has opencv
+        if enable_camera and CAMERA_MODULE_AVAILABLE and CV2_AVAILABLE:
+            try:
+                self.camera = CameraModule(use_picamera=True)
+                print("Camera enabled")
+            except Exception as e:
+                print(f"Warning: Could not initialize camera: {e}")
+                self.camera = None
+                enable_camera = False
+        else:
+            self.camera = None
+            if enable_camera:
+                print("Warning: Camera requested but opencv-python not installed")
+                print("Install with: pip install opencv-python")
+                enable_camera = False
         
         self.running = False
         self.enable_camera = enable_camera

@@ -5,9 +5,24 @@ Camera Module
 Handles camera input for the RC car
 Can be extended for object detection, line following, etc.
 """
-import cv2
-import numpy as np
-from picamera2 import Picamera2
+from __future__ import annotations
+
+try:
+    import cv2
+    import numpy as np
+    CV2_AVAILABLE = True
+except ImportError:
+    CV2_AVAILABLE = False
+    np = None
+    print("Warning: opencv-python not installed. Camera features disabled.")
+    print("Install with: pip install opencv-python")
+
+try:
+    from picamera2 import Picamera2
+    PICAMERA2_AVAILABLE = True
+except ImportError:
+    PICAMERA2_AVAILABLE = False
+    
 from typing import Optional
 import config
 import time
@@ -22,6 +37,12 @@ class CameraModule:
         Args:
             use_picamera: True for Raspberry Pi Camera, False for USB camera
         """
+        if not CV2_AVAILABLE:
+            print("ERROR: opencv-python not installed. Camera cannot be initialized.")
+            self.camera = None
+            self.use_picamera = False
+            return
+            
         self.use_picamera = use_picamera
         self.camera = None
         self.is_recording = False
@@ -51,6 +72,10 @@ class CameraModule:
     
     def _init_usb_camera(self):
         """Initialize USB camera"""
+        if not CV2_AVAILABLE:
+            print("Cannot initialize USB camera - opencv-python not installed")
+            return
+            
         try:
             self.camera = cv2.VideoCapture(0)
             self.camera.set(cv2.CAP_PROP_FRAME_WIDTH, config.CAMERA_RESOLUTION[0])
