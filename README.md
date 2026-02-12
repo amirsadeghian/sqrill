@@ -93,8 +93,10 @@ Default GPIO pins (configurable in `config.py`):
 - **Right Sensor**: Trigger=GPIO22, Echo=GPIO10
 
 #### Motor Driver (L298N)
-- **Left Motor**: Forward=GPIO18, Backward=GPIO15, Enable(PWM)=GPIO14
-- **Right Motor**: Forward=GPIO7, Backward=GPIO8, Enable(PWM)=GPIO25
+- **Drive Motor (Forward/Backward)**: PWM=GPIO13
+- **Steering Motor**: Left=GPIO6, Right=GPIO5, PWM=GPIO12
+
+**Note:** This setup is for RC cars with Ackermann steering (one drive motor + one steering motor), not tank-style differential drive.
 
 ### Circuit Diagram
 ```
@@ -111,16 +113,18 @@ Raspberry Pi                HC-SR04 Sensors
     GPIO22 ────────────────> Right Trigger
     GPIO10 <──────────────── Right Echo
 
-Raspberry Pi                L298N Motor Driver
-    GPIO18 ────────────────> IN1 (Left Forward)
-    GPIO15 ────────────────> IN2 (Left Backward)
-    GPIO14 ────────────────> ENA (Left Enable/PWM)
-    GPIO7  ────────────────> IN3 (Right Forward)
-    GPIO8  ────────────────> IN4 (Right Backward)
-    GPIO25 ────────────────> ENB (Right Enable/PWM)
+Raspberry Pi                Motor Driver (L298N)
+    GPIO13 ────────────────> Drive Motor PWM (speed control)
+    GPIO6  ────────────────> Steering Left
+    GPIO5  ────────────────> Steering Right  
+    GPIO12 ────────────────> Steering Motor PWM
     
     5V ────────────────────> 5V (for logic)
     GND ───────────────────> GND
+    
+Note: Drive motor uses single PWM for speed. For bidirectional 
+control (forward/backward), wire motor driver accordingly or
+add direction pins in config.py if needed.
 ```
 
 ## Software Setup

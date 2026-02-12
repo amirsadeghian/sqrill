@@ -6,8 +6,22 @@ Direct control of RC car using PlayStation controller
 """
 import sys
 import signal
-from ps_controller import PSControllerCarInterface
-from motor_control import MotorController
+
+try:
+    from ps_controller import PSControllerCarInterface
+    from motor_control import MotorController
+except ImportError as e:
+    print("=" * 60)
+    print("❌ IMPORT ERROR")
+    print("=" * 60)
+    print(f"\nError: {e}")
+    print("\nMissing dependency. Install with:")
+    print("   sudo apt-get install python3-evdev")
+    print("   pip install evdev")
+    print("\nOr install all requirements:")
+    print("   pip install -r requirements.txt")
+    print("=" * 60)
+    sys.exit(1)
 
 
 def signal_handler(sig, frame):

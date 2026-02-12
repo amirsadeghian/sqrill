@@ -5,9 +5,9 @@
 
 # Ultrasonic Sensor Pins (HC-SR04)
 # Format: {'trigger': GPIO_PIN, 'echo': GPIO_PIN}
-SENSOR_LEFT = {'trigger': 23, 'echo': 24}
-SENSOR_CENTER = {'trigger': 17, 'echo': 27}
-SENSOR_RIGHT = {'trigger': 22, 'echo': 10}
+SENSOR_LEFT = {'trigger': 4, 'echo': 25}
+SENSOR_CENTER = {'trigger': 23, 'echo': 24}
+SENSOR_RIGHT = {'trigger': 17, 'echo': 16}
 
 # Optional rear sensors (uncomment and set pins when added)
 # SENSOR_BACK_LEFT = {'trigger': 5, 'echo': 6}
@@ -18,15 +18,16 @@ PIR_SENSOR_PIN = 4  # GPIO pin for PIR sensor output
 PIR_ENABLE = False  # Enable/disable PIR sensor (TEMPORARILY DISABLED)
 
 # Motor Driver Pins (L298N or similar)
-# Left Motor
-MOTOR_LEFT_FORWARD = 18
-MOTOR_LEFT_BACKWARD = 15
-MOTOR_LEFT_ENABLE = 14  # PWM pin for speed control
+# Drive Motor (Forward/Backward)
+MOTOR_DRIVE_PWM = 13  # PWM pin for drive motor speed control
+# Note: If using H-bridge, you may need additional pins for direction:
+MOTOR_DRIVE_FORWARD = 26  # Uncomment and set if needed
+MOTOR_DRIVE_BACKWARD = 22  # Uncomment and set if needed
 
-# Right Motor
-MOTOR_RIGHT_FORWARD = 7
-MOTOR_RIGHT_BACKWARD = 8
-MOTOR_RIGHT_ENABLE = 25  # PWM pin for speed control
+# Steering Motor
+MOTOR_STEER_LEFT = 6   # Pin for steering left
+MOTOR_STEER_RIGHT = 5  # Pin for steering right
+MOTOR_STEER_PWM = 12   # PWM pin for steering motor
 
 # Camera Settings (Optimized for Raspberry Pi 2)
 # For Pi 3/4: use (640, 480) @ 30fps

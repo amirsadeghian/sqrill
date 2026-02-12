@@ -221,13 +221,16 @@ class PSControllerCarInterface:
     
     def process_dpad_input(self):
         """Process D-pad button input"""
-        # Priority: forward/backward over turning
+        # Forward/backward
         if self.controller.is_button_pressed('DPAD_UP') or \
            self.controller.is_button_pressed('BTN_TRIGGER'):
+            self.motors.center_steering()
             self.motors.forward(speed=self.speed)
         elif self.controller.is_button_pressed('DPAD_DOWN') or \
              self.controller.is_button_pressed('BTN_THUMB'):
+            self.motors.center_steering()
             self.motors.backward(speed=self.speed)
+        # Left/right steering
         elif self.controller.is_button_pressed('DPAD_LEFT') or \
              self.controller.is_button_pressed('BTN_THUMB2'):
             self.motors.turn_left(speed=self.turn_speed)
@@ -238,10 +241,10 @@ class PSControllerCarInterface:
             self.motors.stop()
     
     def process_analog_input(self):
-        """Process analog stick input"""
+        """Process analog stick input for steering car"""
         # Get left stick values (0-255, center at 128)
-        x_axis = self.controller.get_axis_value('x')
-        y_axis = self.controller.get_axis_value('y')
+        x_axis = self.controller.get_axis_value('x')  # Steering
+        y_axis = self.controller.get_axis_value('y')  # Forward/backward
         
         # Calculate from center (128)
         x_delta = x_axis - 128
@@ -258,35 +261,33 @@ class PSControllerCarInterface:
             self.motors.stop()
             return
         
-        # Calculate motor speeds based on stick position
-        # Forward/backward is primary, left/right adjusts
-        forward_speed = -y_delta / 128.0  # Negative because up is 0
-        turn_amount = x_delta / 128.0
+        # Calculate steering angle (-100 to +100)
+        # Positive x_delta = right, negative = left
+        steering_amount = int((x_delta / 128.0) * 100)
+        steering_amount = max(-100, min(100, steering_amount))
         
-        # Calculate left and right motor speeds
-        left_speed = forward_speed + turn_amount
-        right_speed = forward_speed - turn_amount
+        # Calculate drive speed (0-100)
+        # Negative y_delta = forward (up on stick), positive = backward
+        drive_speed = int((abs(y_delta) / 128.0) * self.speed)
+        drive_speed = max(0, min(100, drive_speed))
         
-        # Normalize to -1.0 to 1.0
-        max_speed = max(abs(left_speed), abs(right_speed))
-        if max_speed > 1.0:
-            left_speed /= max_speed
-            right_speed /= max_speed
+        # Apply steering
+        if abs(steering_amount) > 10:  # Small deadzone for steering
+            if steering_amount < 0:
+                self.motors.steer_left(abs(steering_amount))
+            else:
+                self.motors.steer_right(steering_amount)
+        else:
+            self.motors.center_steering()
         
-        # Convert to PWM values
-        left_pwm = int(abs(left_speed) * self.speed)
-        right_pwm = int(abs(right_speed) * self.speed)
-        
-        # Apply motor commands
-        if left_speed > 0.1:
-            self.motors.pwm_left.ChangeDutyCycle(left_pwm)
-        elif left_speed < -0.1:
-            self.motors.pwm_left.ChangeDutyCycle(left_pwm)
-        
-        if right_speed > 0.1:
-            self.motors.pwm_right.ChangeDutyCycle(right_pwm)
-        elif right_speed < -0.1:
-            self.motors.pwm_right.ChangeDutyCycle(right_pwm)
+        # Apply drive
+        if y_delta < -self.analog_deadzone:  # Forward
+            self.motors.forward(speed=drive_speed)
+        elif y_delta > self.analog_deadzone:  # Backward
+            self.motors.backward(speed=drive_speed)
+        else:
+            # Only steering, no drive
+            self.motors.pwm_drive.ChangeDutyCycle(0)
     
     def run(self):
         """Main control loop"""

@@ -21,7 +21,7 @@ class Direction(Enum):
 
 
 class MotorController:
-    """Controls the motors for the RC car"""
+    """Controls the motors for the RC car with steering motor"""
     
     def __init__(self):
         GPIO.setmode(GPIO.BCM)
@@ -30,25 +30,25 @@ class MotorController:
         # Setup motor pins
         self.setup_pins()
         
-        # Setup PWM for speed control
-        self.pwm_left = GPIO.PWM(config.MOTOR_LEFT_ENABLE, 1000)  # 1kHz frequency
-        self.pwm_right = GPIO.PWM(config.MOTOR_RIGHT_ENABLE, 1000)
+        # Setup PWM for drive motor (forward/backward)
+        self.pwm_drive = GPIO.PWM(config.MOTOR_DRIVE_PWM, 1000)  # 1kHz frequency
+        self.pwm_drive.start(0)
         
-        self.pwm_left.start(0)
-        self.pwm_right.start(0)
+        # Setup PWM for steering motor
+        self.pwm_steer = GPIO.PWM(config.MOTOR_STEER_PWM, 1000)
+        self.pwm_steer.start(0)
         
         self.current_speed = config.SPEED_NORMAL
+        self.current_steering = 0  # -100 (full left) to +100 (full right), 0 = center
         self.is_moving = False
         
     def setup_pins(self):
         """Setup GPIO pins for motors"""
         pins = [
-            config.MOTOR_LEFT_FORWARD,
-            config.MOTOR_LEFT_BACKWARD,
-            config.MOTOR_LEFT_ENABLE,
-            config.MOTOR_RIGHT_FORWARD,
-            config.MOTOR_RIGHT_BACKWARD,
-            config.MOTOR_RIGHT_ENABLE
+            config.MOTOR_DRIVE_PWM,
+            config.MOTOR_STEER_LEFT,
+            config.MOTOR_STEER_RIGHT,
+            config.MOTOR_STEER_PWM
         ]
         
         for pin in pins:
@@ -60,99 +60,95 @@ class MotorController:
         self.current_speed = max(0, min(100, speed))
     
     def stop(self):
-        """Stop all motors"""
-        GPIO.output(config.MOTOR_LEFT_FORWARD, False)
-        GPIO.output(config.MOTOR_LEFT_BACKWARD, False)
-        GPIO.output(config.MOTOR_RIGHT_FORWARD, False)
-        GPIO.output(config.MOTOR_RIGHT_BACKWARD, False)
-        
-        self.pwm_left.ChangeDutyCycle(0)
-        self.pwm_right.ChangeDutyCycle(0)
+        """Stop drive motor and center steering"""
+        self.pwm_drive.ChangeDutyCycle(0)
+        self.center_steering()
         self.is_moving = False
     
     def forward(self, speed: int = None):
         """Move forward"""
         if speed is None:
             speed = self.current_speed
-            
-        GPIO.output(config.MOTOR_LEFT_FORWARD, True)
-        GPIO.output(config.MOTOR_LEFT_BACKWARD, False)
-        GPIO.output(config.MOTOR_RIGHT_FORWARD, True)
-        GPIO.output(config.MOTOR_RIGHT_BACKWARD, False)
         
-        self.pwm_left.ChangeDutyCycle(speed)
-        self.pwm_right.ChangeDutyCycle(speed)
+        # Drive motor forward (positive PWM)
+        self.pwm_drive.ChangeDutyCycle(speed)
         self.is_moving = True
     
     def backward(self, speed: int = None):
         """Move backward"""
         if speed is None:
             speed = self.current_speed
-            
-        GPIO.output(config.MOTOR_LEFT_FORWARD, False)
-        GPIO.output(config.MOTOR_LEFT_BACKWARD, True)
-        GPIO.output(config.MOTOR_RIGHT_FORWARD, False)
-        GPIO.output(config.MOTOR_RIGHT_BACKWARD, True)
         
-        self.pwm_left.ChangeDutyCycle(speed)
-        self.pwm_right.ChangeDutyCycle(speed)
+        # Drive motor backward
+        # NOTE: With only PWM pin, this needs proper H-bridge wiring
+        # You may need to add MOTOR_DRIVE_FORWARD and MOTOR_DRIVE_BACKWARD pins
+        # in config.py and control them here for direction control
+        # For now, using PWM only (works if H-bridge is wired for bidirectional control)
+        self.pwm_drive.ChangeDutyCycle(-speed if speed < 0 else speed)
         self.is_moving = True
+    
+    def steer_left(self, amount: int = 100):
+        """
+        Steer left
+        amount: 0-100, where 100 is full left
+        """
+        amount = max(0, min(100, amount))
+        self.current_steering = -amount
+        
+        GPIO.output(config.MOTOR_STEER_LEFT, True)
+        GPIO.output(config.MOTOR_STEER_RIGHT, False)
+        self.pwm_steer.ChangeDutyCycle(amount)
+    
+    def steer_right(self, amount: int = 100):
+        """
+        Steer right
+        amount: 0-100, where 100 is full right
+        """
+        amount = max(0, min(100, amount))
+        self.current_steering = amount
+        
+        GPIO.output(config.MOTOR_STEER_LEFT, False)
+        GPIO.output(config.MOTOR_STEER_RIGHT, True)
+        self.pwm_steer.ChangeDutyCycle(amount)
+    
+    def center_steering(self):
+        """Center the steering (go straight)"""
+        GPIO.output(config.MOTOR_STEER_LEFT, False)
+        GPIO.output(config.MOTOR_STEER_RIGHT, False)
+        self.pwm_steer.ChangeDutyCycle(0)
+        self.current_steering = 0
     
     def turn_left(self, speed: int = None):
-        """Turn left (left motor backward, right motor forward)"""
+        """Turn left (steer left while moving forward)"""
         if speed is None:
             speed = config.SPEED_TURN
-            
-        GPIO.output(config.MOTOR_LEFT_FORWARD, False)
-        GPIO.output(config.MOTOR_LEFT_BACKWARD, True)
-        GPIO.output(config.MOTOR_RIGHT_FORWARD, True)
-        GPIO.output(config.MOTOR_RIGHT_BACKWARD, False)
         
-        self.pwm_left.ChangeDutyCycle(speed)
-        self.pwm_right.ChangeDutyCycle(speed)
-        self.is_moving = True
+        self.steer_left(100)
+        self.forward(speed)
     
     def turn_right(self, speed: int = None):
-        """Turn right (left motor forward, right motor backward)"""
+        """Turn right (steer right while moving forward)"""
         if speed is None:
             speed = config.SPEED_TURN
-            
-        GPIO.output(config.MOTOR_LEFT_FORWARD, True)
-        GPIO.output(config.MOTOR_LEFT_BACKWARD, False)
-        GPIO.output(config.MOTOR_RIGHT_FORWARD, False)
-        GPIO.output(config.MOTOR_RIGHT_BACKWARD, True)
         
-        self.pwm_left.ChangeDutyCycle(speed)
-        self.pwm_right.ChangeDutyCycle(speed)
-        self.is_moving = True
+        self.steer_right(100)
+        self.forward(speed)
     
     def gentle_left(self, speed: int = None):
-        """Gentle left turn (slow down left motor)"""
+        """Gentle left turn (partial steering)"""
         if speed is None:
             speed = self.current_speed
-            
-        GPIO.output(config.MOTOR_LEFT_FORWARD, True)
-        GPIO.output(config.MOTOR_LEFT_BACKWARD, False)
-        GPIO.output(config.MOTOR_RIGHT_FORWARD, True)
-        GPIO.output(config.MOTOR_RIGHT_BACKWARD, False)
         
-        self.pwm_left.ChangeDutyCycle(speed * 0.5)  # Left motor at 50%
-        self.pwm_right.ChangeDutyCycle(speed)
-        self.is_moving = True
+        self.steer_left(50)  # 50% steering
+        self.forward(speed)
     
     def gentle_right(self, speed: int = None):
-        """Gentle right turn (slow down right motor)"""
+        """Gentle right turn (partial steering)"""
         if speed is None:
             speed = self.current_speed
-            
-        GPIO.output(config.MOTOR_LEFT_FORWARD, True)
-        GPIO.output(config.MOTOR_LEFT_BACKWARD, False)
-        GPIO.output(config.MOTOR_RIGHT_FORWARD, True)
-        GPIO.output(config.MOTOR_RIGHT_BACKWARD, False)
         
-        self.pwm_left.ChangeDutyCycle(speed)
-        self.pwm_right.ChangeDutyCycle(speed * 0.5)  # Right motor at 50%
-        self.is_moving = True
+        self.steer_right(50)  # 50% steering
+        self.forward(speed)
     
     def move(self, direction: Direction, duration: float = None, speed: int = None):
         """
@@ -177,20 +173,20 @@ class MotorController:
     def cleanup(self):
         """Stop motors and cleanup GPIO"""
         self.stop()
-        self.pwm_left.stop()
-        self.pwm_right.stop()
+        self.pwm_drive.stop()
+        self.pwm_steer.stop()
         GPIO.cleanup()
 
 
 if __name__ == "__main__":
     """Test the motors"""
-    print("Testing Motor Controller...")
+    print("Testing Motor Controller (Steering Setup)...")
     print("Press Ctrl+C to exit\n")
     
     motors = MotorController()
     
     try:
-        print("Moving forward...")
+        print("Test 1: Moving forward...")
         motors.forward(speed=50)
         time.sleep(2)
         
@@ -198,7 +194,7 @@ if __name__ == "__main__":
         motors.stop()
         time.sleep(1)
         
-        print("Moving backward...")
+        print("Test 2: Moving backward...")
         motors.backward(speed=50)
         time.sleep(2)
         
@@ -206,17 +202,33 @@ if __name__ == "__main__":
         motors.stop()
         time.sleep(1)
         
-        print("Turning left...")
-        motors.turn_left()
+        print("Test 3: Steering left...")
+        motors.steer_left(100)
         time.sleep(1)
+        
+        print("Centering steering...")
+        motors.center_steering()
+        time.sleep(1)
+        
+        print("Test 4: Steering right...")
+        motors.steer_right(100)
+        time.sleep(1)
+        
+        print("Centering steering...")
+        motors.center_steering()
+        time.sleep(1)
+        
+        print("Test 5: Turn left (forward + steer)...")
+        motors.turn_left(speed=50)
+        time.sleep(2)
         
         print("Stopping...")
         motors.stop()
         time.sleep(1)
         
-        print("Turning right...")
-        motors.turn_right()
-        time.sleep(1)
+        print("Test 6: Turn right (forward + steer)...")
+        motors.turn_right(speed=50)
+        time.sleep(2)
         
         print("Stopping...")
         motors.stop()
