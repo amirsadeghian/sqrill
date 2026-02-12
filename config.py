@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 # Configuration file for Autonomous RC Car
 # GPIO Pin assignments and sensor/motor parameters
 
@@ -13,7 +15,7 @@ SENSOR_RIGHT = {'trigger': 22, 'echo': 10}
 
 # PIR Motion Detection Sensor (for squirrel detection)
 PIR_SENSOR_PIN = 4  # GPIO pin for PIR sensor output
-PIR_ENABLE = True  # Enable/disable PIR sensor
+PIR_ENABLE = False  # Enable/disable PIR sensor (TEMPORARILY DISABLED)
 
 # Motor Driver Pins (L298N or similar)
 # Left Motor

@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 PlayStation Controller Module
 Handles input from PS1/PS2 controllers via USB adapter

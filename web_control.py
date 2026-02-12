@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Web Control Interface for RC Car
 Provides web-based control, live camera feed, and sensor monitoring

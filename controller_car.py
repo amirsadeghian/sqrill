@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 PS Controller Car Control
 Direct control of RC car using PlayStation controller

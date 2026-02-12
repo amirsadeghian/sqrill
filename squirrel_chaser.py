@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Squirrel Detection and Chase Mode
 Autonomous RC car that detects and chases squirrels using PIR and camera

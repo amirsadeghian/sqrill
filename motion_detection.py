@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Motion Detection Module
 Handles PIR sensor for detecting squirrels and other moving objects

@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Ultrasonic Sensor Module
 Handles reading from HC-SR04 ultrasonic sensors

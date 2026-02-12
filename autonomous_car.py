@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Autonomous RC Car - Main Control Program
 Implements obstacle avoidance using ultrasonic sensors and optional camera
