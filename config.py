@@ -17,12 +17,15 @@ SENSOR_RIGHT = {'trigger': 17, 'echo': 16}
 PIR_SENSOR_PIN = 4  # GPIO pin for PIR sensor output
 PIR_ENABLE = False  # Enable/disable PIR sensor (TEMPORARILY DISABLED)
 
-# Motor Driver Pins (L298N or similar)
-# Drive Motor (Forward/Backward)
-MOTOR_DRIVE_PWM = 13  # PWM pin for drive motor speed control
-# Note: If using H-bridge, you may need additional pins for direction:
-MOTOR_DRIVE_FORWARD = 26  # Uncomment and set if needed
-MOTOR_DRIVE_BACKWARD = 22  # Uncomment and set if needed
+# Motor Driver Pins
+# Drive Motor - Using XY-MOS MOSFET module (PWM only, forward direction only)
+MOTOR_DRIVE_PWM = 13  # GPIO 13 (Pin 33) - PWM signal to XY-MOS
+MOTOR_DRIVER_TYPE = 'MOSFET'  # Options: 'MOSFET' (XY-MOS) or 'HBRIDGE' (L298N)
+
+# If using H-bridge (L298N), uncomment these:
+# MOTOR_DRIVER_TYPE = 'HBRIDGE'
+# MOTOR_DRIVE_FORWARD = 26  # IN1
+# MOTOR_DRIVE_BACKWARD = 22  # IN2
 
 # Steering Motor
 MOTOR_STEER_LEFT = 6   # Pin for steering left

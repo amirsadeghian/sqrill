@@ -46,12 +46,17 @@ class MotorController:
         """Setup GPIO pins for motors"""
         pins = [
             config.MOTOR_DRIVE_PWM,
-            config.MOTOR_DRIVE_FORWARD,
-            config.MOTOR_DRIVE_BACKWARD,
             config.MOTOR_STEER_LEFT,
             config.MOTOR_STEER_RIGHT,
             config.MOTOR_STEER_PWM
         ]
+        
+        # Add H-bridge direction pins if using H-bridge
+        if hasattr(config, 'MOTOR_DRIVER_TYPE') and config.MOTOR_DRIVER_TYPE == 'HBRIDGE':
+            if hasattr(config, 'MOTOR_DRIVE_FORWARD'):
+                pins.append(config.MOTOR_DRIVE_FORWARD)
+            if hasattr(config, 'MOTOR_DRIVE_BACKWARD'):
+                pins.append(config.MOTOR_DRIVE_BACKWARD)
         
         for pin in pins:
             GPIO.setup(pin, GPIO.OUT)
@@ -63,8 +68,12 @@ class MotorController:
     
     def stop(self):
         """Stop drive motor and center steering"""
-        GPIO.output(config.MOTOR_DRIVE_FORWARD, False)
-        GPIO.output(config.MOTOR_DRIVE_BACKWARD, False)
+        # Stop H-bridge direction pins if present
+        if hasattr(config, 'MOTOR_DRIVE_FORWARD'):
+            GPIO.output(config.MOTOR_DRIVE_FORWARD, False)
+        if hasattr(config, 'MOTOR_DRIVE_BACKWARD'):
+            GPIO.output(config.MOTOR_DRIVE_BACKWARD, False)
+        
         self.pwm_drive.ChangeDutyCycle(0)
         self.center_steering()
         self.is_moving = False
@@ -74,11 +83,12 @@ class MotorController:
         if speed is None:
             speed = self.current_speed
         
-        # Set direction pins for forward
-        GPIO.output(config.MOTOR_DRIVE_FORWARD, True)
-        GPIO.output(config.MOTOR_DRIVE_BACKWARD, False)
+        # For H-bridge: set direction pins
+        if hasattr(config, 'MOTOR_DRIVE_FORWARD'):
+            GPIO.output(config.MOTOR_DRIVE_FORWARD, True)
+            GPIO.output(config.MOTOR_DRIVE_BACKWARD, False)
         
-        # Apply PWM speed
+        # For MOSFET (XY-MOS): just apply PWM (motor wired for forward)
         self.pwm_drive.ChangeDutyCycle(speed)
         self.is_moving = True
     
@@ -87,12 +97,17 @@ class MotorController:
         if speed is None:
             speed = self.current_speed
         
-        # Set direction pins for backward
-        GPIO.output(config.MOTOR_DRIVE_FORWARD, False)
-        GPIO.output(config.MOTOR_DRIVE_BACKWARD, True)
+        # For H-bridge: set direction pins
+        if hasattr(config, 'MOTOR_DRIVE_FORWARD') and hasattr(config, 'MOTOR_DRIVE_BACKWARD'):
+            GPIO.output(config.MOTOR_DRIVE_FORWARD, False)
+            GPIO.output(config.MOTOR_DRIVE_BACKWARD, True)
+            self.pwm_drive.ChangeDutyCycle(speed)
+        else:
+            # MOSFET can't reverse! Use steering to turn around instead
+            print("⚠ Warning: MOSFET driver can't go backward. Use steering to turn around.")
+            # Alternative: brake by momentarily stopping
+            self.pwm_drive.ChangeDutyCycle(0)
         
-        # Apply PWM speed
-        self.pwm_drive.ChangeDutyCycle(speed)
         self.is_moving = True
     
     def steer_left(self, amount: int = 100):
