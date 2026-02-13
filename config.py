@@ -17,20 +17,18 @@ SENSOR_RIGHT = {'trigger': 17, 'echo': 16}
 PIR_SENSOR_PIN = 4  # GPIO pin for PIR sensor output
 PIR_ENABLE = False  # Enable/disable PIR sensor (TEMPORARILY DISABLED)
 
-# Motor Driver Pins
-# Drive Motor - Using XY-MOS MOSFET module (PWM only, forward direction only)
-MOTOR_DRIVE_PWM = 13  # GPIO 13 (Pin 33) - PWM signal to XY-MOS
-MOTOR_DRIVER_TYPE = 'MOSFET'  # Options: 'MOSFET' (XY-MOS) or 'HBRIDGE' (L298N)
+# Motor Driver Pins - Using Single L298N H-Bridge for BOTH motors
+# L298N Motor A → Drive Motor (forward/backward)
+MOTOR_DRIVE_FORWARD = 26   # GPIO 26 → L298N IN1
+MOTOR_DRIVE_BACKWARD = 22  # GPIO 22 → L298N IN2
+MOTOR_DRIVE_PWM = 13       # GPIO 13 → L298N ENA
 
-# If using H-bridge (L298N), uncomment these:
-# MOTOR_DRIVER_TYPE = 'HBRIDGE'
-# MOTOR_DRIVE_FORWARD = 26  # IN1
-# MOTOR_DRIVE_BACKWARD = 22  # IN2
+# L298N Motor B → Steering Motor (left/right)
+MOTOR_STEER_LEFT = 6       # GPIO 6  → L298N IN3
+MOTOR_STEER_RIGHT = 5      # GPIO 5  → L298N IN4
+MOTOR_STEER_PWM = 12       # GPIO 12 → L298N ENB
 
-# Steering Motor
-MOTOR_STEER_LEFT = 6   # Pin for steering left
-MOTOR_STEER_RIGHT = 5  # Pin for steering right
-MOTOR_STEER_PWM = 12   # PWM pin for steering motor
+MOTOR_DRIVER_TYPE = 'HBRIDGE'  # Using L298N H-bridge for both motors
 
 # Camera Settings (Optimized for Raspberry Pi 2)
 # For Pi 3/4: use (640, 480) @ 30fps

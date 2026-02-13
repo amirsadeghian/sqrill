@@ -1,0 +1,104 @@
+L298N H-BRIDGE WIRING GUIDE (Both Motors)
+===========================================
+
+Using SINGLE L298N for both Drive Motor and Steering Motor
+
+
+RASPBERRY PI → L298N CONNECTIONS:
+----------------------------------
+
+Power:
+  Pi GND (Pin 39)     → L298N GND
+  Battery (+) 6-12V   → L298N +12V
+  Battery GND         → L298N GND (common ground with Pi)
+
+Motor A (Drive Motor - Forward/Backward):
+  Pi GPIO 26 (Pin 37) → L298N IN1  (Forward)
+  Pi GPIO 22 (Pin 15) → L298N IN2  (Backward)
+  Pi GPIO 13 (Pin 33) → L298N ENA  (Speed/PWM)
+
+Motor B (Steering Motor - Left/Right):
+  Pi GPIO 6  (Pin 31) → L298N IN3  (Steer Left)
+  Pi GPIO 5  (Pin 29) → L298N IN4  (Steer Right)
+  Pi GPIO 12 (Pin 32) → L298N ENB  (Speed/PWM)
+
+
+L298N → MOTORS:
+---------------
+  L298N OUT1 & OUT2  → Drive Motor (2 wires)
+  L298N OUT3 & OUT4  → Steering Motor (2 wires)
+
+
+L298N JUMPER SETTINGS:
+----------------------
+  ⚠️  REMOVE both ENA and ENB jumpers!
+  This allows PWM speed control from Pi GPIO pins
+
+
+VISUAL DIAGRAM:
+---------------
+
+        Raspberry Pi                    L298N H-Bridge
+    ┌─────────────────┐           ┌──────────────────────┐
+    │                 │           │                      │
+    │ Pin 37 (GPIO26) ├──────────→│ IN1  (Motor A Fwd)   │
+    │ Pin 15 (GPIO22) ├──────────→│ IN2  (Motor A Back)  │
+    │ Pin 33 (GPIO13) ├──────────→│ ENA  (Motor A PWM)   │
+    │                 │           │                      │
+    │ Pin 31 (GPIO6)  ├──────────→│ IN3  (Motor B Left)  │
+    │ Pin 29 (GPIO5)  ├──────────→│ IN4  (Motor B Right) │
+    │ Pin 32 (GPIO12) ├──────────→│ ENB  (Motor B PWM)   │
+    │                 │           │                      │
+    │ Pin 39 (GND)    ├──────────→│ GND                  │
+    └─────────────────┘           │                      │
+                                  │ +12V ← Battery (+)   │
+                                  │ GND  ← Battery (-)   │
+                                  │                      │
+                                  │ OUT1 ┐               │
+                                  │ OUT2 ├──→ Drive Motor│
+                                  │      │               │
+                                  │ OUT3 ┐               │
+                                  │ OUT4 ├──→ Steer Motor│
+                                  └──────────────────────┘
+
+
+WHAT TO DISCONNECT:
+-------------------
+  ✗ Remove XY-MOS module completely
+  ✗ Disconnect direct battery connection to drive motor
+  ✗ Everything now runs through the L298N
+
+
+BENEFITS:
+---------
+  ✅ Both motors controlled by one H-bridge
+  ✅ Forward AND backward support for drive motor
+  ✅ Fewer components (remove XY-MOS)
+  ✅ Works perfectly with 3.3V GPIO from Pi
+  ✅ Better current handling than MOSFET modules
+
+
+TESTING AFTER WIRING:
+---------------------
+  python test_pins.py
+
+  Option 1: Verify all pin assignments
+  Option 2: Test forward (should work now!)
+  Option 3: Test backward (NEW - should work!)
+  Option 4: Test steering left
+  Option 5: Test steering right
+
+
+TROUBLESHOOTING:
+----------------
+  • Motor spins wrong direction?
+    → Swap the two motor wires at OUT1/OUT2 (or OUT3/OUT4)
+  
+  • Motor doesn't move at all?
+    → Check ENA/ENB jumpers are REMOVED
+    → Verify battery voltage (6-12V required)
+    → Check common ground between Pi and L298N
+  
+  • Motor moves but weak?
+    → Check battery can supply enough current
+    → Increase PWM speed in config.py
