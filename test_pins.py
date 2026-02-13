@@ -36,9 +36,18 @@ class PinTester:
         print(f"  Right  - Trigger: GPIO {config.SENSOR_RIGHT['trigger']:2d}  Echo: GPIO {config.SENSOR_RIGHT['echo']:2d}")
         
         print("\n🚗 DRIVE MOTOR:")
-        print(f"  Forward Pin:  GPIO {config.MOTOR_DRIVE_FORWARD} (L298N IN1)")
-        print(f"  Backward Pin: GPIO {config.MOTOR_DRIVE_BACKWARD} (L298N IN2)")
-        print(f"  PWM/Speed:    GPIO {config.MOTOR_DRIVE_PWM} (L298N ENA)")
+        driver_type = getattr(config, 'MOTOR_DRIVER_TYPE', 'HBRIDGE')
+        print(f"  Driver Type:  {driver_type}")
+        
+        if driver_type == 'MOSFET':
+            print(f"  PWM/Speed:    GPIO {config.MOTOR_DRIVE_PWM} (XY-MOS signal pin)")
+            print(f"  Note: MOSFET mode only supports FORWARD direction")
+        else:
+            if hasattr(config, 'MOTOR_DRIVE_FORWARD'):
+                print(f"  Forward Pin:  GPIO {config.MOTOR_DRIVE_FORWARD} (L298N IN1)")
+            if hasattr(config, 'MOTOR_DRIVE_BACKWARD'):
+                print(f"  Backward Pin: GPIO {config.MOTOR_DRIVE_BACKWARD} (L298N IN2)")
+            print(f"  PWM/Speed:    GPIO {config.MOTOR_DRIVE_PWM} (L298N ENA)")
         
         print("\n🔄 STEERING MOTOR:")
         print(f"  Steer Left:   GPIO {config.MOTOR_STEER_LEFT}")
@@ -99,13 +108,15 @@ class PinTester:
         print(f"\n🚗 Testing DRIVE MOTOR - FORWARD at {speed}% for {duration}s")
         print("   Motor should spin FORWARD")
         try:
-            GPIO.setup(config.MOTOR_DRIVE_FORWARD, GPIO.OUT)
-            GPIO.setup(config.MOTOR_DRIVE_BACKWARD, GPIO.OUT)
+            driver_type = getattr(config, 'MOTOR_DRIVER_TYPE', 'HBRIDGE')
             GPIO.setup(config.MOTOR_DRIVE_PWM, GPIO.OUT)
             
-            # Set direction
-            GPIO.output(config.MOTOR_DRIVE_FORWARD, True)
-            GPIO.output(config.MOTOR_DRIVE_BACKWARD, False)
+            # Setup direction pins if H-bridge
+            if driver_type == 'HBRIDGE' and hasattr(config, 'MOTOR_DRIVE_FORWARD'):
+                GPIO.setup(config.MOTOR_DRIVE_FORWARD, GPIO.OUT)
+                GPIO.setup(config.MOTOR_DRIVE_BACKWARD, GPIO.OUT)
+                GPIO.output(config.MOTOR_DRIVE_FORWARD, True)
+                GPIO.output(config.MOTOR_DRIVE_BACKWARD, False)
             
             # Apply PWM
             pwm = GPIO.PWM(config.MOTOR_DRIVE_PWM, 1000)
@@ -116,7 +127,8 @@ class PinTester:
             
             # Stop
             pwm.ChangeDutyCycle(0)
-            GPIO.output(config.MOTOR_DRIVE_FORWARD, False)
+            if driver_type == 'HBRIDGE' and hasattr(config, 'MOTOR_DRIVE_FORWARD'):
+                GPIO.output(config.MOTOR_DRIVE_FORWARD, False)
             pwm.stop()
             
             print("   ✓ Forward test complete")
@@ -127,6 +139,14 @@ class PinTester:
     
     def test_drive_motor_backward(self, speed: int = 70, duration: float = 2.0):
         """Test drive motor in backward direction"""
+        driver_type = getattr(config, 'MOTOR_DRIVER_TYPE', 'HBRIDGE')
+        
+        if driver_type == 'MOSFET':
+            print(f"\n⚠ BACKWARD not supported with MOSFET driver (XY-MOS)")
+            print("   MOSFET can only control speed in one direction")
+            print("   To add backward: Use H-bridge (L298N) or add 2nd MOSFET")
+            return False
+        
         print(f"\n🚗 Testing DRIVE MOTOR - BACKWARD at {speed}% for {duration}s")
         print("   Motor should spin BACKWARD")
         try:
@@ -273,12 +293,16 @@ class PinTester:
                 time.sleep(0.5)
                 self.test_ultrasonic_sensor("RIGHT", config.SENSOR_RIGHT)
             elif choice == "7":
-                print("\nTesting drive motor pins individually:")
-                self.test_single_pin(config.MOTOR_DRIVE_FORWARD, "FORWARD pin (IN1)", 2.0)
-                time.sleep(1)
-                self.test_single_pin(config.MOTOR_DRIVE_BACKWARD, "BACKWARD pin (IN2)", 2.0)
-                time.sleep(1)
-                self.test_pwm_pin(config.MOTOR_DRIVE_PWM, "PWM pin (ENA)", 70, 2.0)
+                driver_type = getattr(config, 'MOTOR_DRIVER_TYPE', 'HBRIDGE')
+                print(f"\nTesting drive motor pins individually ({driver_type} mode):")
+                
+                if driver_type == 'HBRIDGE' and hasattr(config, 'MOTOR_DRIVE_FORWARD'):
+                    self.test_single_pin(config.MOTOR_DRIVE_FORWARD, "FORWARD pin (IN1)", 2.0)
+                    time.sleep(1)
+                    self.test_single_pin(config.MOTOR_DRIVE_BACKWARD, "BACKWARD pin (IN2)", 2.0)
+                    time.sleep(1)
+                
+                self.test_pwm_pin(config.MOTOR_DRIVE_PWM, "PWM pin (XY-MOS signal)" if driver_type == 'MOSFET' else "PWM pin (ENA)", 70, 2.0)
             elif choice == "8":
                 print("\nTesting steering motor pins individually:")
                 self.test_single_pin(config.MOTOR_STEER_LEFT, "STEER LEFT pin", 2.0)
