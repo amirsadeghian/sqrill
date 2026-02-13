@@ -103,10 +103,14 @@ class PinTester:
             print(f"  ✗ Error testing {pin_name}: {e}")
             return False
     
-    def test_drive_motor_forward(self, speed: int = 70, duration: float = 2.0):
+    def test_drive_motor_forward(self, speed: int = 100, duration: float = 3.0):
         """Test drive motor in forward direction"""
         print(f"\n🚗 Testing DRIVE MOTOR - FORWARD at {speed}% for {duration}s")
         print("   Motor should spin FORWARD")
+        print("   If motor BUZZES but doesn't move:")
+        print("     - Battery voltage too low (need 6-12V with good current)")
+        print("     - Motor needs more starting torque (increase speed below)")
+        print("     - XY-MOS signal voltage issue (Pi outputs 3.3V, might need 5V)")
         try:
             driver_type = getattr(config, 'MOTOR_DRIVER_TYPE', 'HBRIDGE')
             GPIO.setup(config.MOTOR_DRIVE_PWM, GPIO.OUT)
@@ -118,12 +122,22 @@ class PinTester:
                 GPIO.output(config.MOTOR_DRIVE_FORWARD, True)
                 GPIO.output(config.MOTOR_DRIVE_BACKWARD, False)
             
-            # Apply PWM
+            # Apply PWM with gradual ramp-up for starting torque
             pwm = GPIO.PWM(config.MOTOR_DRIVE_PWM, 1000)
             pwm.start(0)
-            pwm.ChangeDutyCycle(speed)
             
+            print(f"   Ramping up from 0% to {speed}%...")
+            for dc in range(0, speed + 1, 10):
+                pwm.ChangeDutyCycle(dc)
+                time.sleep(0.1)
+            
+            print(f"   Holding at {speed}%...")
             time.sleep(duration)
+            
+            print("   Ramping down...")
+            for dc in range(speed, -1, -10):
+                pwm.ChangeDutyCycle(dc)
+                time.sleep(0.05)
             
             # Stop
             pwm.ChangeDutyCycle(0)
@@ -269,6 +283,8 @@ class PinTester:
             print("7. Test individual pins (drive motor)")
             print("8. Test individual pins (steering motor)")
             print("9. Custom speed test")
+            print("a. Variable speed ramp test (50% → 100%)")
+            print("b. Full power burst test (100%)")
             print("0. Exit")
             print("="*60)
             
@@ -322,6 +338,17 @@ class PinTester:
                         self.test_drive_motor_backward(speed, duration)
                 except ValueError:
                     print("Invalid input")
+            elif choice == "a":
+                print("\n🚗 VARIABLE SPEED RAMP TEST")
+                print("   Testing motor at different speeds to find minimum")
+                for speed in [50, 60, 70, 80, 90, 100]:
+                    print(f"\n   Testing at {speed}%...")
+                    self.test_drive_motor_forward(speed, 1.5)
+                    time.sleep(0.5)
+            elif choice == "b":
+                print("\n🚗 FULL POWER BURST TEST (100% PWM)")
+                print("   Maximum power for 5 seconds")
+                self.test_drive_motor_forward(100, 5.0)
             else:
                 print("Invalid choice")
             

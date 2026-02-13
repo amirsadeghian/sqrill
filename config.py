@@ -44,9 +44,10 @@ SAFE_DISTANCE = 50  # Comfortable distance in cm
 CRITICAL_DISTANCE = 15  # Emergency stop distance in cm
 
 # Speed Settings (PWM duty cycle 0-100)
-SPEED_NORMAL = 70
-SPEED_SLOW = 40
-SPEED_TURN = 60
+# Note: Increase if motor buzzes but doesn't move (needs more starting torque)
+SPEED_NORMAL = 90  # Increased for better motor starting torque
+SPEED_SLOW = 60    # Minimum speed that still moves the motor
+SPEED_TURN = 85    # Speed during turns
 
 # Sensor Reading
 SENSOR_TIMEOUT = 0.5  # seconds
