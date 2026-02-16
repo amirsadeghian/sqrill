@@ -7,6 +7,7 @@ Supports L298N or similar H-bridge motor drivers
 """
 import RPi.GPIO as GPIO
 import time
+import threading
 from enum import Enum
 import config
 
@@ -41,6 +42,7 @@ class MotorController:
         self.current_speed = config.SPEED_NORMAL
         self.current_steering = 0  # -100 (full left) to +100 (full right), 0 = center
         self.is_moving = False
+        self.steering_timer = None  # Timer for stopping steering motor
         
     def setup_pins(self):
         """Setup GPIO pins for motors"""
@@ -110,32 +112,71 @@ class MotorController:
         
         self.is_moving = True
     
-    def steer_left(self, amount: int = 100):
+    def steer_left(self, amount: int = 100, timed: bool = True):
         """
         Steer left
         amount: 0-100, where 100 is full left
+        timed: If True, stops motor after STEERING_PULSE_DURATION to prevent strain
         """
         amount = max(0, min(100, amount))
         self.current_steering = -amount
         
+        # Cancel any existing steering timer
+        if self.steering_timer:
+            self.steering_timer.cancel()
+        
         GPIO.output(config.MOTOR_STEER_LEFT, True)
         GPIO.output(config.MOTOR_STEER_RIGHT, False)
         self.pwm_steer.ChangeDutyCycle(amount)
+        
+        # Auto-stop motor after pulse duration to prevent straining at limit
+        if timed and hasattr(config, 'STEERING_PULSE_DURATION'):
+            self.steering_timer = threading.Timer(
+                config.STEERING_PULSE_DURATION, 
+                self._stop_steering_motor
+            )
+            self.steering_timer.start()
     
-    def steer_right(self, amount: int = 100):
+    def steer_right(self, amount: int = 100, timed: bool = True):
         """
         Steer right
         amount: 0-100, where 100 is full right
+        timed: If True, stops motor after STEERING_PULSE_DURATION to prevent strain
         """
         amount = max(0, min(100, amount))
         self.current_steering = amount
         
+        # Cancel any existing steering timer
+        if self.steering_timer:
+            self.steering_timer.cancel()
+        
         GPIO.output(config.MOTOR_STEER_LEFT, False)
         GPIO.output(config.MOTOR_STEER_RIGHT, True)
         self.pwm_steer.ChangeDutyCycle(amount)
+        
+        # Auto-stop motor after pulse duration to prevent straining at limit
+        if timed and hasattr(config, 'STEERING_PULSE_DURATION'):
+            self.steering_timer = threading.Timer(
+                config.STEERING_PULSE_DURATION, 
+                self._stop_steering_motor
+            )
+            self.steering_timer.start()
+    
+    def _stop_steering_motor(self):
+        """Stop steering motor PWM (called by timer)"""
+        self.pwm_steer.ChangeDutyCycle(0)
+        # Keep direction pins set if STEERING_HOLD_POSITION is True
+        # This allows mechanical linkage to hold position
+        if not getattr(config, 'STEERING_HOLD_POSITION', True):
+            GPIO.output(config.MOTOR_STEER_LEFT, False)
+            GPIO.output(config.MOTOR_STEER_RIGHT, False)
     
     def center_steering(self):
         """Center the steering (go straight)"""
+        # Cancel any existing steering timer
+        if self.steering_timer:
+            self.steering_timer.cancel()
+        
         GPIO.output(config.MOTOR_STEER_LEFT, False)
         GPIO.output(config.MOTOR_STEER_RIGHT, False)
         self.pwm_steer.ChangeDutyCycle(0)
@@ -195,6 +236,10 @@ class MotorController:
     
     def cleanup(self):
         """Stop motors and cleanup GPIO"""
+        # Cancel steering timer if active
+        if self.steering_timer:
+            self.steering_timer.cancel()
+        
         self.stop()
         self.pwm_drive.stop()
         self.pwm_steer.stop()

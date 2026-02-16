@@ -55,6 +55,10 @@ MAX_DISTANCE = 400  # Maximum reliable distance in cm
 SCAN_INTERVAL = 0.1  # Time between sensor readings in seconds
 TURN_DURATION = 0.5  # Duration for turns in seconds
 
+# Steering Motor Settings
+STEERING_PULSE_DURATION = 0.3  # Time to apply steering (seconds) before motor stops
+STEERING_HOLD_POSITION = True  # Keep direction pins set after pulse (holds position mechanically)
+
 # Squirrel Detection Parameters
 SQUIRREL_MODE = True  # Enable squirrel detection mode
 MOTION_DETECTION_THRESHOLD = 25  # Minimum pixel change % to detect motion (camera)
