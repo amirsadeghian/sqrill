@@ -340,8 +340,14 @@ class PSControllerCarInterface:
         """Clean up resources"""
         print("\n🧹 Cleaning up...")
         self.running = False
-        self.motors.stop()
-        self.controller.cleanup()
+        try:
+            self.motors.stop()
+        except:
+            pass  # Ignore errors if motors already cleaned up
+        try:
+            self.controller.cleanup()
+        except:
+            pass
         print("✅ Done!")
 
 

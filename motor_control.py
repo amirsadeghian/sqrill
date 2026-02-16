@@ -43,6 +43,7 @@ class MotorController:
         self.current_steering = 0  # -100 (full left) to +100 (full right), 0 = center
         self.is_moving = False
         self.steering_timer = None  # Timer for stopping steering motor
+        self.cleaned_up = False  # Track if cleanup already called
         
     def setup_pins(self):
         """Setup GPIO pins for motors"""
@@ -236,14 +237,48 @@ class MotorController:
     
     def cleanup(self):
         """Stop motors and cleanup GPIO"""
-        # Cancel steering timer if active
-        if self.steering_timer:
-            self.steering_timer.cancel()
+        if self.cleaned_up:
+            return  # Already cleaned up, avoid double cleanup
         
-        self.stop()
-        self.pwm_drive.stop()
-        self.pwm_steer.stop()
-        GPIO.cleanup()
+        try:
+            # Cancel steering timer if active
+            if self.steering_timer:
+                self.steering_timer.cancel()
+                self.steering_timer = None
+            
+            # Stop motors first
+            self.stop()
+            
+            # Stop PWM objects before GPIO cleanup
+            try:
+                if hasattr(self, 'pwm_drive'):
+                    self.pwm_drive.stop()
+            except:
+                pass
+            
+            try:
+                if hasattr(self, 'pwm_steer'):
+                    self.pwm_steer.stop()
+            except:
+                pass
+            
+            # Mark as cleaned up before GPIO.cleanup()
+            self.cleaned_up = True
+            
+            # Finally cleanup GPIO
+            GPIO.cleanup()
+            
+        except Exception as e:
+            print(f"Warning during cleanup: {e}")
+            self.cleaned_up = True
+    
+    def __del__(self):
+        """Destructor - ensure cleanup happens"""
+        if hasattr(self, 'cleaned_up') and not self.cleaned_up:
+            try:
+                self.cleanup()
+            except:
+                pass  # Ignore errors during destructor
 
 
 if __name__ == "__main__":

@@ -70,6 +70,12 @@ if __name__ == "__main__":
     # Run controller
     try:
         car.run()
+    except Exception as e:
+        print(f"\n❌ Error during operation: {e}")
     finally:
-        motors.cleanup()
+        print("\nShutting down...")
+        try:
+            motors.cleanup()
+        except:
+            pass  # Ignore cleanup errors
         print("Goodbye! 🎮")
